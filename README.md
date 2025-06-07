@@ -1,6 +1,7 @@
 ![Banner](/preview/banner.png)
+![Demo](/preview/demo.webp)
 
-###  1. Въведение
+### Въведение
 
 IBKR-NRA (Interactive Brokers - НАП) е софтуер, който улеснява попълването на годишната данъчна декларация към НАП.
 
