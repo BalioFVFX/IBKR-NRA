@@ -144,7 +144,7 @@ class DividendsViewModel(
     }
 
     fun onBack() {
-        if (!uiState.value.canRemove) {
+        if (!uiState.value.canImport) {
             return
         }
 
