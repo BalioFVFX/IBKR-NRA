@@ -7,18 +7,23 @@ import parser.DividendsParser
 import parser.output.Dividend
 import util.CompanyNameExtractor
 import util.CountryExtractor
+import util.PercentageCalculator
 
 class NapDividendConverter(
     private val levExchanger: LevExchanger,
     private val companyNameExtractor: CompanyNameExtractor,
     private val countryExtractor: CountryExtractor,
+    private val percentageCalculator: PercentageCalculator,
 ) {
+
+    val progress = percentageCalculator.percentage
 
     suspend fun convert(
         dividends: List<Dividend>,
     ): ConverterResult<NapDividend> {
         val errors = mutableListOf<String>()
         val napDividends = mutableListOf<NapDividend>()
+        percentageCalculator.reset(maximum = dividends.size)
 
         for (dividend in dividends) {
             val dividendCompanyName = run {
@@ -66,6 +71,8 @@ class NapDividendConverter(
                     result
                 }
             }
+
+            percentageCalculator.increment()
 
             napDividends.add(
                 NapDividend(

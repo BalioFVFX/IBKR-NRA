@@ -14,6 +14,7 @@ import nav.Navigation
 import parser.DividendsParser
 import screen.util.FileItem
 import util.FileProvider
+import util.combineProgress
 import java.io.File
 
 class DividendsViewModel(
@@ -32,6 +33,7 @@ class DividendsViewModel(
             canRemove = false,
             canImport = true,
             canConvert = false,
+            progress = null,
         )
     )
 
@@ -87,11 +89,24 @@ class DividendsViewModel(
         }
 
         scope.launch(Dispatchers.IO) {
+            launch {
+                combineProgress(
+                    dividendsParser.progress,
+                    napDividendConverter.progress,
+                    dividendsExporter.progress,
+                    napDividendExporter.progress,
+                ).collect { progress ->
+                    _uiState.update { it.copy(progress = progress.value) }
+                }
+            }.invokeOnCompletion {
+                _uiState.update { it.copy(progress = null) }
+            }
+
             val dividendsResult = dividendsParser.parse(internalDividendsFile!!)
 
             if (dividendsResult.isFailure) {
                 dividendsResult.exceptionOrNull()?.printStackTrace()
-                _uiState.value = previousState
+                _uiState.update { previousState }
                 return@launch
             }
 
@@ -109,7 +124,7 @@ class DividendsViewModel(
             )
 
             if (debugExportResult.isFailure) {
-                _uiState.value = previousState
+                _uiState.update { previousState }
                 debugExportResult.exceptionOrNull()?.printStackTrace()
                 return@launch
             }
@@ -138,8 +153,7 @@ class DividendsViewModel(
                 println("Could not export Nap Dividends")
             }
 
-
-            _uiState.value = previousState
+            _uiState.update { previousState }
         }
     }
 

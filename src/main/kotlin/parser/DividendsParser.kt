@@ -3,6 +3,7 @@ package parser
 import com.github.doyaaaaaken.kotlincsv.client.CsvReader
 import currency.Currency
 import parser.output.Dividend
+import util.PercentageCalculator
 import java.io.File
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -10,15 +11,19 @@ import java.time.format.DateTimeFormatter
 
 class DividendsParser(
     private val csvReader: CsvReader,
+    private val percentageCalculator: PercentageCalculator,
 ) {
 
     companion object {
         val DATE_TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy;HH:mm:ss")
     }
 
+    val progress = percentageCalculator.percentage
+
     fun parse(file: File): Result<List<Dividend>> {
         val rows = csvReader.readAllWithHeader(file)
         val fileRows = mutableListOf<FileRow>()
+        percentageCalculator.reset(maximum = rows.size + 1)
 
         for (row in rows) {
             if (row.size != 10) {
@@ -27,11 +32,13 @@ class DividendsParser(
 
             if (isRowAHeader(row)) {
                 println("Header row, skipping!")
+                percentageCalculator.increment()
                 continue
             }
 
             try {
                 fileRows.add(parseFileRow(row))
+                percentageCalculator.increment()
             } catch (ex: Exception) {
                 return Result.failure(ex)
             }
@@ -58,6 +65,8 @@ class DividendsParser(
                         actionId = dividend.actionId,
                     )
                 }
+
+            percentageCalculator.increment()
 
             Result.success(dividends)
         } catch (ex: Exception) {

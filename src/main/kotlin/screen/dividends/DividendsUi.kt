@@ -7,4 +7,5 @@ data class DividendsUi(
     val canRemove: Boolean,
     val canImport: Boolean,
     val canConvert: Boolean,
+    val progress: Int?,
 )
