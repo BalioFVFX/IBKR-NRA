@@ -27,6 +27,7 @@ class PercentageCalculator() {
 
     fun reset(maximum: Int) {
         this.maximum = maximum
+        this.currentIncrement = 0
         this._percentage.tryEmit(value = Progress(value = 0))
     }
 }
