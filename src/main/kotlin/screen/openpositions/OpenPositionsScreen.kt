@@ -43,10 +43,12 @@ import org.jetbrains.compose.resources.painterResource
 import parser.OpenPositionsParser
 import parser.TradesParser
 import screen.component.FileCell
+import screen.component.ProgressIndicator
 import screen.util.FileItem
 import util.CountryExtractor
 import util.DateTimeProvider
 import util.FileProvider
+import util.PercentageCalculator
 import util.WorkBookProvider
 import java.io.File
 import java.net.http.HttpClient
@@ -203,6 +205,10 @@ fun OpenPositionsScreenContent(
                 enabled = uiState.canConvert
             )
         }
+
+        if (uiState.progress != null) {
+            ProgressIndicator(percent = uiState.progress)
+        }
     }
 }
 
@@ -221,11 +227,24 @@ private fun rememberViewModel(
 
         OpenPositionsViewModel(
             scope = scope,
-            openPositionsParser = OpenPositionsParser(reader = csvReader()),
-            tradesParser = TradesParser(csvReader()),
-            tradesExporter = TradesExporter(workBookProvider = workBookProvider),
-            openPositionsExporter = OpenPositionsExporter(workBookProvider = workBookProvider),
-            napOpenPositionsExporter = NapOpenPositionsExporter(workBookProvider = workBookProvider),
+            openPositionsParser = OpenPositionsParser(
+                reader = csvReader(),
+            ),
+            tradesParser = TradesParser(
+                csvReader(),
+            ),
+            tradesExporter = TradesExporter(
+                workBookProvider = workBookProvider,
+                percentageCalculator = PercentageCalculator(),
+            ),
+            openPositionsExporter = OpenPositionsExporter(
+                workBookProvider = workBookProvider,
+                percentageCalculator = PercentageCalculator(),
+            ),
+            napOpenPositionsExporter = NapOpenPositionsExporter(
+                workBookProvider = workBookProvider,
+                percentageCalculator = PercentageCalculator(),
+            ),
             dateTimeProvider = dateTimeProvider,
             fileProvider = fileProvider,
             napOpenPositionConverter = NapOpenPositionConverter(
@@ -240,7 +259,8 @@ private fun rememberViewModel(
                 countryExtractor = CountryExtractor(
                     csvReader = csvReader(),
                     fileProvider = fileProvider,
-                )
+                ),
+                percentageCalculator = PercentageCalculator(),
             ),
             navigation = navigation,
         )

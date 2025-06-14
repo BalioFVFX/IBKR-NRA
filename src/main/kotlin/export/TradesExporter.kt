@@ -2,19 +2,25 @@ package export
 
 import parser.output.Trade
 import parser.TradesParser
+import util.PercentageCalculator
 import util.WorkBookProvider
 import java.io.File
 import java.io.FileOutputStream
 
 class TradesExporter(
     private val workBookProvider: WorkBookProvider,
+    private val percentageCalculator: PercentageCalculator,
 ) {
+
+    val progress = percentageCalculator.percentage
+
     fun export(
         trades: List<Trade>,
         sheetName: String,
         destination: File,
     ) : Result<Unit> {
         val workBook = workBookProvider.provideXSSFWorkbook()
+        percentageCalculator.reset(maximum = trades.size)
 
         val sheet = workBook.createSheet(sheetName)
 
@@ -51,6 +57,8 @@ class TradesExporter(
             currentRow.createCell(9).setCellValue(trade.commission.toString())
             currentRow.createCell(10).setCellValue(trade.commissionCurrency.toString())
             currentRow.createCell(11).setCellValue(trade.transactionId)
+
+            percentageCalculator.increment()
         }
 
         try {

@@ -1,6 +1,7 @@
 package export
 
 import converter.result.NapOpenPosition
+import util.PercentageCalculator
 import util.WorkBookProvider
 import java.io.File
 import java.io.FileOutputStream
@@ -8,12 +9,17 @@ import kotlin.collections.forEach
 
 class NapOpenPositionsExporter(
     private val workBookProvider: WorkBookProvider,
+    private val percentageCalculator: PercentageCalculator,
 ) {
+
+    val progress = percentageCalculator.percentage
 
     fun export(
         openPositions: List<NapOpenPosition>,
         destination: File,
     ) : Result<Unit> {
+        percentageCalculator.reset(maximum = openPositions.size)
+
         val workBook = workBookProvider.provideXSSFWorkbook()
 
         val sheet = workBook.createSheet("Нап")
@@ -59,6 +65,8 @@ class NapOpenPositionsExporter(
             currentExtendedRow.createCell(5).setCellValue(openPosition.detailOriginalCurrency)
             currentExtendedRow.createCell(6).setCellValue(openPosition.detailOriginalPrice)
             currentExtendedRow.createCell(7).setCellValue(openPosition.detailLevDate)
+
+            percentageCalculator.increment()
         }
 
         try {

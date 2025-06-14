@@ -18,6 +18,7 @@ import parser.TradesParser
 import screen.util.FileItem
 import util.DateTimeProvider
 import util.FileProvider
+import util.combineProgress
 import java.io.File
 import java.time.format.DateTimeFormatter
 
@@ -50,6 +51,7 @@ class OpenPositionsViewModel(
             canImport = true,
             canConvert = false,
             canRemove = true,
+            progress = null,
         )
     )
 
@@ -118,11 +120,33 @@ class OpenPositionsViewModel(
     }
 
     fun onConvert() {
+        val previousState = _uiState.value
+
         _uiState.value = _uiState.value.copy(
             canImport = false,
             canConvert = computeCanConvert(isConverting = true),
             canRemove = false,
         )
+
+        val progressJob = scope.launch {
+            combineProgress(
+                tradesExporter.progress,
+                openPositionsExporter.progress,
+                napOpenPositionsExporter.progress,
+                napOpenPositionConverter.progress,
+            ).collect { progress ->
+                _uiState.update { uiState ->
+                    uiState.copy(progress = progress.value)
+                }
+            }
+        }
+
+        progressJob.invokeOnCompletion {
+            println("Cancelling progress collection")
+            _uiState.update { uiState ->
+                uiState.copy(progress = null)
+            }
+        }
 
         scope.launch(Dispatchers.IO) {
             val basePath = "exports/${dateTimeProvider.currentDateTime().format(EXPORT_DATE_TIME_FORMATTER)}"
@@ -136,11 +160,7 @@ class OpenPositionsViewModel(
             )
 
             if (!tradesExportResult.isSuccess) {
-                _uiState.value = _uiState.value.copy(
-                    canImport = false,
-                    canRemove = true,
-                    canConvert = computeCanConvert(isConverting = false)
-                )
+                _uiState.update { previousState}
                 return@launch
             }
 
@@ -151,11 +171,7 @@ class OpenPositionsViewModel(
             )
 
             if (!openPositionsExportResult.isSuccess) {
-                _uiState.value = _uiState.value.copy(
-                    canImport = false,
-                    canRemove = true,
-                    canConvert = computeCanConvert(isConverting = false),
-                )
+                _uiState.update { previousState }
                 return@launch
             }
 
@@ -175,13 +191,9 @@ class OpenPositionsViewModel(
                 destination = fileProvider.provide("${basePath}/result.xls"),
             )
 
-            println("DONE")
-
-            _uiState.value = _uiState.value.copy(
-                canImport = true,
-                canRemove = true,
-                canConvert = computeCanConvert(isConverting = false)
-            )
+            _uiState.update { previousState }
+        }.invokeOnCompletion {
+            progressJob.cancel()
         }
     }
 

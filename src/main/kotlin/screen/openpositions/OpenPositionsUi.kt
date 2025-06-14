@@ -8,4 +8,5 @@ data class OpenPositionsUi(
     val canImport: Boolean,
     val canConvert: Boolean,
     val canRemove: Boolean,
+    val progress: Int?,
 )
