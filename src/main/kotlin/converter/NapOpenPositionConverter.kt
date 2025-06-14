@@ -6,26 +6,34 @@ import currency.LevExchanger
 import parser.output.OpenPosition
 import parser.output.Trade
 import util.CountryExtractor
+import util.PercentageCalculator
 import java.time.format.DateTimeFormatter
 
 class NapOpenPositionConverter(
     private val levExchanger: LevExchanger,
     private val countryExtractor: CountryExtractor,
+    private val percentageCalculator: PercentageCalculator,
 ) {
 
     companion object {
         private val OPEN_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     }
 
+    val progress = percentageCalculator.percentage
+
     suspend fun convert(
         trades: List<Trade>,
         openPositions: List<OpenPosition>,
     ): ConverterResult<NapOpenPosition> {
 
+        percentageCalculator.reset(maximum = openPositions.size)
+
         val errors = mutableListOf<String>()
         val result = mutableListOf<NapOpenPosition>()
 
         for (openPosition in openPositions) {
+            percentageCalculator.increment()
+
             val trade = trades.firstOrNull { trade ->
                 trade.transactionId == openPosition.transactionId
             }

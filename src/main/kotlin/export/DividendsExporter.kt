@@ -2,21 +2,26 @@ package export
 
 import parser.DividendsParser
 import parser.output.Dividend
+import util.PercentageCalculator
 import util.WorkBookProvider
 import java.io.File
 import java.io.FileOutputStream
 
 class DividendsExporter(
     private val workBookProvider: WorkBookProvider,
+    private val percentageCalculator: PercentageCalculator,
 ) {
+
+    val progress = percentageCalculator.percentage
+
     fun export(
         dividends: List<Dividend>,
         sheetName: String,
         destination: File,
     ) : Result<Unit> {
         val workBook = workBookProvider.provideXSSFWorkbook()
-
         val sheet = workBook.createSheet(sheetName)
+        percentageCalculator.reset(maximum = dividends.size)
 
         var rowIndex = 0
 
@@ -33,6 +38,8 @@ class DividendsExporter(
         }
 
         dividends.forEach { dividend ->
+            percentageCalculator.increment()
+
             rowIndex += 1
             val currentRow = sheet.createRow(rowIndex)
 

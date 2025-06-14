@@ -2,20 +2,26 @@ package export
 
 import parser.output.OpenPosition
 import parser.OpenPositionsParser
+import util.PercentageCalculator
 import util.WorkBookProvider
 import java.io.File
 import java.io.FileOutputStream
 
 class OpenPositionsExporter(
     private val workBookProvider: WorkBookProvider,
+    private val percentageCalculator: PercentageCalculator
 ) {
+
+    val progress = percentageCalculator.percentage
+
     fun export(
         openPositions: List<OpenPosition>,
         sheetName: String,
         destination: File,
     ) : Result<Unit> {
-        val workBook = workBookProvider.provideXSSFWorkbook()
+        percentageCalculator.reset(maximum = openPositions.size)
 
+        val workBook = workBookProvider.provideXSSFWorkbook()
         val sheet = workBook.createSheet(sheetName)
 
         var rowIndex = 0
@@ -35,6 +41,8 @@ class OpenPositionsExporter(
         }
 
         openPositions.forEach { openPosition ->
+            percentageCalculator.increment()
+
             rowIndex += 1
             val currentRow = sheet.createRow(rowIndex)
 

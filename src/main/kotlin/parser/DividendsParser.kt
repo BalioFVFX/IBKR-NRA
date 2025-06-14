@@ -3,6 +3,7 @@ package parser
 import com.github.doyaaaaaken.kotlincsv.client.CsvReader
 import currency.Currency
 import parser.output.Dividend
+import util.PercentageCalculator
 import java.io.File
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -10,17 +11,23 @@ import java.time.format.DateTimeFormatter
 
 class DividendsParser(
     private val csvReader: CsvReader,
+    private val percentageCalculator: PercentageCalculator,
 ) {
 
     companion object {
         val DATE_TIME_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy;HH:mm:ss")
     }
 
+    val progress = percentageCalculator.percentage
+
     fun parse(file: File): Result<List<Dividend>> {
         val rows = csvReader.readAllWithHeader(file)
         val fileRows = mutableListOf<FileRow>()
+        percentageCalculator.reset(maximum = rows.size)
 
         for (row in rows) {
+            percentageCalculator.increment()
+
             if (row.size != 10) {
                 return Result.failure(IllegalArgumentException("Невалиден брой колони"))
             }

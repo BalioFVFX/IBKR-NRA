@@ -40,11 +40,13 @@ import nav.Navigation
 import org.jetbrains.compose.resources.painterResource
 import parser.DividendsParser
 import screen.component.FileCell
+import screen.component.ProgressIndicator
 import screen.util.FileItem
 import util.CompanyNameExtractor
 import util.CountryExtractor
 import util.DateTimeProvider
 import util.FileProvider
+import util.PercentageCalculator
 import util.WorkBookProvider
 import java.io.File
 import java.net.http.HttpClient
@@ -149,6 +151,10 @@ fun DividendsScreenContent(
             )
         }
 
+        if (dividendsUi.progress != null) {
+            Spacer(Modifier.size(8.dp))
+            ProgressIndicator(percent = dividendsUi.progress)
+        }
     }
 }
 
@@ -164,6 +170,7 @@ private fun DividendsScreenPreview() {
             canRemove = true,
             canImport = true,
             canConvert = true,
+            progress = null,
         ),
         onBack = {},
         onDividendFileRemove = {},
@@ -207,19 +214,23 @@ private fun rememberViewModel(
             scope = scope,
             dividendsParser = DividendsParser(
                 csvReader = csvReader(),
+                percentageCalculator = PercentageCalculator(),
             ),
             fileProvider = fileProvider,
             dividendsExporter = DividendsExporter(
                 workBookProvider = workBookProvider,
+                percentageCalculator = PercentageCalculator(),
             ),
             errorExporter = ConverterErrorExporter(),
             napDividendExporter = NapDividendExporter(
                 workBookProvider = workBookProvider,
+                percentageCalculator = PercentageCalculator(),
             ),
             napDividendConverter = NapDividendConverter(
                 levExchanger = levExchanger,
                 companyNameExtractor = companyNameExtractor,
                 countryExtractor = countryExtractor,
+                percentageCalculator = PercentageCalculator(),
             ),
         )
     }
