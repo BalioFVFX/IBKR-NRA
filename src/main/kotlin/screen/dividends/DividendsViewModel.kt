@@ -88,20 +88,23 @@ class DividendsViewModel(
             )
         }
 
-        scope.launch(Dispatchers.IO) {
-            launch {
-                combineProgress(
-                    dividendsParser.progress,
-                    napDividendConverter.progress,
-                    dividendsExporter.progress,
-                    napDividendExporter.progress,
-                ).collect { progress ->
-                    _uiState.update { it.copy(progress = progress.value) }
-                }
-            }.invokeOnCompletion {
-                _uiState.update { it.copy(progress = null) }
+        val progressJob = scope.launch {
+            combineProgress(
+                dividendsParser.progress,
+                napDividendConverter.progress,
+                dividendsExporter.progress,
+                napDividendExporter.progress,
+            ).collect { progress ->
+                _uiState.update { it.copy(progress = progress.value) }
             }
+        }
 
+        progressJob.invokeOnCompletion {
+            println("Cancelling progress collection")
+            _uiState.update { it.copy(progress = null) }
+        }
+
+        scope.launch(Dispatchers.IO) {
             val dividendsResult = dividendsParser.parse(internalDividendsFile!!)
 
             if (dividendsResult.isFailure) {
@@ -154,6 +157,8 @@ class DividendsViewModel(
             }
 
             _uiState.update { previousState }
+        }.invokeOnCompletion {
+            progressJob.cancel()
         }
     }
 
