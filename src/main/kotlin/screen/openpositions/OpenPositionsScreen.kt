@@ -207,6 +207,7 @@ fun OpenPositionsScreenContent(
         }
 
         if (uiState.progress != null) {
+            Spacer(Modifier.size(8.dp))
             ProgressIndicator(percent = uiState.progress)
         }
     }

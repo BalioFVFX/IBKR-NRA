@@ -152,6 +152,7 @@ fun DividendsScreenContent(
         }
 
         if (dividendsUi.progress != null) {
+            Spacer(Modifier.size(8.dp))
             ProgressIndicator(percent = dividendsUi.progress)
         }
     }
