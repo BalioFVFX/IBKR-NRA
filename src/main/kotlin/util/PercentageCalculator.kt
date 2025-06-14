@@ -2,25 +2,31 @@ package util
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.math.min
 
 class PercentageCalculator() {
 
     private val _percentage = MutableStateFlow(value = Progress(value = 0))
 
-    private var step = 0f
-    private var currentValue = 0f
+    private var maximum = 0
+    private var currentIncrement = 0
 
     val percentage = _percentage.asStateFlow()
 
     fun increment(times: Int = 1) {
-        currentValue += step * times
+        currentIncrement = min(maximum, currentIncrement + times)
 
-        _percentage.tryEmit(value = Progress(value = (currentValue * 100).toInt()))
+        val percentageValue = (currentIncrement / maximum.toFloat()) * 100
+
+        _percentage.tryEmit(
+            value = Progress(
+                value = percentageValue.toInt(),
+            )
+        )
     }
 
     fun reset(maximum: Int) {
-        this.step = 1f / maximum
-        this.currentValue = 0f
+        this.maximum = maximum
         this._percentage.tryEmit(value = Progress(value = 0))
     }
 }

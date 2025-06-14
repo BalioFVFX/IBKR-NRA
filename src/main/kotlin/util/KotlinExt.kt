@@ -10,8 +10,8 @@ fun combineProgress(vararg flows: StateFlow<Progress>): Flow<Progress> {
         flows = flows,
         transform = { values ->
             values.sumOf { progress ->
-                progress.value / flows.size
-            }
+                progress.value
+            } / flows.size
         }
     )
         .map { Progress(value = it) }
