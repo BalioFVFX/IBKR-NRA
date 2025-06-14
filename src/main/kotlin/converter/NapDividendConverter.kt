@@ -26,6 +26,8 @@ class NapDividendConverter(
         percentageCalculator.reset(maximum = dividends.size)
 
         for (dividend in dividends) {
+            percentageCalculator.increment()
+
             val dividendCompanyName = run {
                 val companyName = companyNameExtractor.extract(ticker = dividend.ticker)
 
@@ -71,8 +73,6 @@ class NapDividendConverter(
                     result
                 }
             }
-
-            percentageCalculator.increment()
 
             napDividends.add(
                 NapDividend(

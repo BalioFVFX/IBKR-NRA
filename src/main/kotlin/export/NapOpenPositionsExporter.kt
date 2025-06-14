@@ -47,6 +47,8 @@ class NapOpenPositionsExporter(
         }
 
         openPositions.forEach { openPosition ->
+            percentageCalculator.increment()
+
             rowIndex += 1
             val currentRow = sheet.createRow(rowIndex)
             val currentExtendedRow = extendedSheet.createRow(rowIndex)
@@ -65,8 +67,6 @@ class NapOpenPositionsExporter(
             currentExtendedRow.createCell(5).setCellValue(openPosition.detailOriginalCurrency)
             currentExtendedRow.createCell(6).setCellValue(openPosition.detailOriginalPrice)
             currentExtendedRow.createCell(7).setCellValue(openPosition.detailLevDate)
-
-            percentageCalculator.increment()
         }
 
         try {

@@ -38,6 +38,8 @@ class DividendsExporter(
         }
 
         dividends.forEach { dividend ->
+            percentageCalculator.increment()
+
             rowIndex += 1
             val currentRow = sheet.createRow(rowIndex)
 
@@ -50,8 +52,6 @@ class DividendsExporter(
             currentRow.createCell(6).setCellValue(dividend.amount.toString())
             currentRow.createCell(7).setCellValue(dividend.taxAmount.toString())
             currentRow.createCell(8).setCellValue(dividend.actionId)
-
-            percentageCalculator.increment()
         }
 
         try {

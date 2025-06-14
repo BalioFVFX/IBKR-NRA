@@ -23,22 +23,22 @@ class DividendsParser(
     fun parse(file: File): Result<List<Dividend>> {
         val rows = csvReader.readAllWithHeader(file)
         val fileRows = mutableListOf<FileRow>()
-        percentageCalculator.reset(maximum = rows.size + 1)
+        percentageCalculator.reset(maximum = rows.size)
 
         for (row in rows) {
+            percentageCalculator.increment()
+
             if (row.size != 10) {
                 return Result.failure(IllegalArgumentException("Невалиден брой колони"))
             }
 
             if (isRowAHeader(row)) {
                 println("Header row, skipping!")
-                percentageCalculator.increment()
                 continue
             }
 
             try {
                 fileRows.add(parseFileRow(row))
-                percentageCalculator.increment()
             } catch (ex: Exception) {
                 return Result.failure(ex)
             }
@@ -65,8 +65,6 @@ class DividendsParser(
                         actionId = dividend.actionId,
                     )
                 }
-
-            percentageCalculator.increment()
 
             Result.success(dividends)
         } catch (ex: Exception) {

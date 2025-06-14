@@ -32,6 +32,8 @@ class NapDividendExporter(
         }
 
         dividends.forEach { dividend ->
+            percentageCalculator.increment()
+
             rowIndex += 1
             val currentRow = sheet.createRow(rowIndex)
 
@@ -39,8 +41,6 @@ class NapDividendExporter(
             currentRow.createCell(1).setCellValue(dividend.country)
             currentRow.createCell(2).setCellValue(dividend.grossDividend)
             currentRow.createCell(3).setCellValue(dividend.dividendWithholdTax)
-
-            percentageCalculator.increment()
         }
 
         try {

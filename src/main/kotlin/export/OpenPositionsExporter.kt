@@ -41,6 +41,8 @@ class OpenPositionsExporter(
         }
 
         openPositions.forEach { openPosition ->
+            percentageCalculator.increment()
+
             rowIndex += 1
             val currentRow = sheet.createRow(rowIndex)
 
@@ -55,8 +57,6 @@ class OpenPositionsExporter(
             currentRow.createCell(8).setCellValue(openPosition.costBasisPrice.toString())
             currentRow.createCell(9).setCellValue(openPosition.costBasisMoney.toString())
             currentRow.createCell(10).setCellValue(openPosition.transactionId)
-
-            percentageCalculator.increment()
         }
 
         try {

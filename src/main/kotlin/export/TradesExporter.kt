@@ -42,6 +42,8 @@ class TradesExporter(
         }
 
         trades.forEach { trade ->
+            percentageCalculator.increment()
+
             rowIndex += 1
             val currentRow = sheet.createRow(rowIndex)
 
@@ -57,8 +59,6 @@ class TradesExporter(
             currentRow.createCell(9).setCellValue(trade.commission.toString())
             currentRow.createCell(10).setCellValue(trade.commissionCurrency.toString())
             currentRow.createCell(11).setCellValue(trade.transactionId)
-
-            percentageCalculator.increment()
         }
 
         try {
