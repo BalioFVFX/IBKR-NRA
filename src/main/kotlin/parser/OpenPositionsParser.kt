@@ -28,7 +28,7 @@ class OpenPositionsParser(
                 continue
             }
 
-            val levelOfDetail = row[Headers.LEVEL_OF_DETAIL]!!
+            val levelOfDetail = row[Headers.LEVEL_OF_DETAIL]
 
             if (levelOfDetail == "SUMMARY") {
                 totalSummaries += 1
