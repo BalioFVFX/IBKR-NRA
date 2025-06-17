@@ -1,7 +1,7 @@
 package screen.dividends
 
 import converter.NapDividendConverter
-import export.ConverterErrorExporter
+import export.ConverterIssueExporter
 import export.DividendsExporter
 import export.NapDividendExporter
 import kotlinx.coroutines.CoroutineScope
@@ -23,7 +23,7 @@ class DividendsViewModel(
     private val dividendsParser: DividendsParser,
     private val dividendsExporter: DividendsExporter,
     private val fileProvider: FileProvider,
-    private val errorExporter: ConverterErrorExporter,
+    private val errorExporter: ConverterIssueExporter,
     private val napDividendExporter: NapDividendExporter,
     private val napDividendConverter: NapDividendConverter,
 ) {
@@ -134,13 +134,13 @@ class DividendsViewModel(
 
             val napConverterResult = napDividendConverter.convert(dividends = dividends)
 
-            if (napConverterResult.errors.isNotEmpty()) {
+            if (napConverterResult.issues.isNotEmpty()) {
                 errorExporter.export(
                     destination = fileProvider.provide(
                         parentFilePath = exportDir.export,
                         childPath = "errors.txt",
                     ),
-                    errors = napConverterResult.errors,
+                    issues = napConverterResult.issues,
                 )
             }
 

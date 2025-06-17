@@ -180,9 +180,9 @@ class OpenPositionsViewModel(
                 openPositions = internalOpenPositions!!.second,
             )
 
-            if (convertResult.errors.isNotEmpty()) {
+            if (convertResult.issues.isNotEmpty()) {
                 fileProvider.provide("${basePath}/errors.txt").writeText(
-                    convertResult.errors.joinToString(separator = "\n")
+                    convertResult.issues.joinToString(separator = "\n")
                 )
             }
 

@@ -27,7 +27,7 @@ import com.github.doyaaaaaken.kotlincsv.dsl.csvWriter
 import converter.NapDividendConverter
 import currency.LevCacheManager
 import currency.LevExchanger
-import export.ConverterErrorExporter
+import export.ConverterIssueExporter
 import export.DividendsExporter
 import export.NapDividendExporter
 import io.github.vinceglb.filekit.FileKit
@@ -221,7 +221,7 @@ private fun rememberViewModel(
                 workBookProvider = workBookProvider,
                 percentageCalculator = PercentageCalculator(),
             ),
-            errorExporter = ConverterErrorExporter(),
+            errorExporter = ConverterIssueExporter(),
             napDividendExporter = NapDividendExporter(
                 workBookProvider = workBookProvider,
                 percentageCalculator = PercentageCalculator(),
