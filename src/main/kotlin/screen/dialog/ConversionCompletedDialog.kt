@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
-
 data class ConversionCompleteDialogUi(
     val notices: Int,
     val errors: Int,

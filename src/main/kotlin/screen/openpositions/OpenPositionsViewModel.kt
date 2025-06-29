@@ -20,13 +20,11 @@ import parser.TradesParser
 import screen.dialog.ConversionCompleteDialogUi
 import screen.dialog.ErrorDialogUi
 import screen.util.FileItem
-import util.DateTimeProvider
 import util.DirectoryOpener
 import util.ExportDirectory
 import util.FileProvider
 import util.combineProgress
 import java.io.File
-import java.time.format.DateTimeFormatter
 
 class OpenPositionsViewModel(
     private val scope: CoroutineScope,
