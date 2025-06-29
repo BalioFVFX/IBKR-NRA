@@ -51,8 +51,8 @@ class TradesParser(
                 currencyString = row.parseString(Headers.CURRENCY),
             ),
             symbol = row.parseString(Headers.SYMBOL),
-            isin = row.parseString(Headers.ISIN),
-            listingExchange = row.parseString(Headers.LISTING_EXCHANGE),
+            isin = row.parseString(header = Headers.ISIN, allowEmpty = true),
+            listingExchange = row.parseString(header = Headers.LISTING_EXCHANGE, allowEmpty = true),
             dateTime = row.parseLocalDateTime(
                 header = Headers.DATE_TIME,
                 formatter = DATE_TIME_FORMATTER,

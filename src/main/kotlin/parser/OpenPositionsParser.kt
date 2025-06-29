@@ -66,8 +66,8 @@ class OpenPositionsParser(
             accountId = row.parseString(Headers.ACCOUNT_ID),
             currency = Currency.parse(currencyString = row.parseString(Headers.CURRENCY)),
             symbol = row.parseString(Headers.SYMBOL),
-            isin = row.parseString(Headers.ISIN),
-            listingExchange = row.parseString(Headers.LISTING_EXCHANGE),
+            isin = row.parseString(header = Headers.ISIN, allowEmpty = true),
+            listingExchange = row.parseString(header = Headers.LISTING_EXCHANGE, allowEmpty = true),
             quantity = row.parseBigDecimal(
                 header = Headers.QUANTITY,
             ),
