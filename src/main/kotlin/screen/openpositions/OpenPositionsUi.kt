@@ -1,5 +1,7 @@
 package screen.openpositions
 
+import screen.dialog.ConversionCompleteDialogUi
+import screen.dialog.ErrorDialogUi
 import screen.util.FileItem
 
 data class OpenPositionsUi(
@@ -9,4 +11,6 @@ data class OpenPositionsUi(
     val canConvert: Boolean,
     val canRemove: Boolean,
     val progress: Int?,
+    val conversionCompleteDialogUi: ConversionCompleteDialogUi?,
+    val errorDialogUi: ErrorDialogUi?,
 )

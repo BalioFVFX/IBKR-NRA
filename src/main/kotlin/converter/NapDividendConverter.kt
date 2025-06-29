@@ -1,7 +1,10 @@
 package converter
 
 import converter.result.ConverterResult
+import converter.result.Issue
 import converter.result.NapDividend
+import converter.result.addError
+import converter.result.addWarning
 import currency.LevExchanger
 import parser.DividendsParser
 import parser.output.Dividend
@@ -21,7 +24,7 @@ class NapDividendConverter(
     suspend fun convert(
         dividends: List<Dividend>,
     ): ConverterResult<NapDividend> {
-        val errors = mutableListOf<String>()
+        val issues = mutableListOf<Issue>()
         val napDividends = mutableListOf<NapDividend>()
         percentageCalculator.reset(maximum = dividends.size)
 
@@ -32,7 +35,10 @@ class NapDividendConverter(
                 val companyName = companyNameExtractor.extract(ticker = dividend.ticker)
 
                 if (companyName == null) {
-                    errors.addError("Не е намерено името на компанията за дивидент с actionId: ${dividend.actionId}")
+                    issues.addWarning(
+                        reason = "Не е намерено името на компанията за дивидент с actionId: ${dividend.actionId}",
+                    )
+
                     dividend.ticker
                 } else {
                     companyName
@@ -46,14 +52,17 @@ class NapDividendConverter(
                 )
 
                 if (lev.isFailure) {
-                    errors.addError("Не е намеренца цена на лев за дивидент с actionId: ${dividend.actionId}")
+                    issues.addError(
+                        reason = "Не е намеренца цена на лев за дивидент с actionId: ${dividend.actionId}",
+                    )
+
                     null
                 } else {
                     val actualLevDate = lev.getOrThrow().first
 
                     if (actualLevDate != dividend.dateTime.toLocalDate()) {
-                        errors.addError(
-                            "Не е намерена цена за лев за дата: ${
+                        issues.addWarning(
+                            reason = "Не е намерена цена за лев за дата: ${
                                 DividendsParser.DATE_TIME_FORMATTER.format(dividend.dateTime)
                             }. Използвана дата: ${DividendsParser.DATE_TIME_FORMATTER.format(actualLevDate)}"
                         )
@@ -67,7 +76,7 @@ class NapDividendConverter(
                 val result = countryExtractor.extractFromTicker(ticker = dividend.ticker)
 
                 if (result == null) {
-                    errors.addError("Не е намерена държава за дивидент с actionId")
+                    issues.addError(reason = "Не е намерена държава за дивидент с actionId: ${dividend.actionId}")
                     "Грешка"
                 } else {
                     result
@@ -79,19 +88,15 @@ class NapDividendConverter(
                     companyName = dividendCompanyName,
                     country = country,
                     grossDividend = levForDividendDate?.multiply(dividend.amount)?.toString() ?: "Грешка",
-                    dividendWithholdTax = levForDividendDate?.multiply(dividend.taxAmount.abs())?.toString() ?: "Грешка",
+                    dividendWithholdTax = levForDividendDate?.multiply(dividend.taxAmount.abs())?.toString()
+                        ?: "Грешка",
                 )
             )
         }
 
         return ConverterResult(
             data = napDividends,
-            errors = errors,
+            issues = issues,
         )
-    }
-
-    private fun MutableList<String>.addError(error: String) {
-        println(error)
-        add(error)
     }
 }

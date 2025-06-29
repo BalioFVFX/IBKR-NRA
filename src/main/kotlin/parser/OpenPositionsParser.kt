@@ -22,13 +22,16 @@ class OpenPositionsParser(
         val openPositions = mutableListOf<OpenPosition>()
         var totalSummaries = 0
 
-        for (row in rows) {
-            if (isRowAHeader(row)) {
+        var rowIndex = 0
+        for (csvRow in rows) {
+            rowIndex += 1
+
+            if (isRowAHeader(csvRow)) {
                 println("Found a header row. Skipping!")
                 continue
             }
 
-            val levelOfDetail = row[Headers.LEVEL_OF_DETAIL]
+            val levelOfDetail = csvRow[Headers.LEVEL_OF_DETAIL]
 
             if (levelOfDetail == "SUMMARY") {
                 totalSummaries += 1
@@ -41,11 +44,15 @@ class OpenPositionsParser(
             try {
                 openPositions.add(
                     element = parseOpenPosition(
-                        row = row,
+                        row = Row(map = csvRow),
                     )
                 )
             } catch (ex: Exception) {
-                return Result.failure(ex)
+                return Result.failure(
+                    IllegalArgumentException(
+                        "Неуспешно обработване на ред: $rowIndex. Причина: ${ex.message}",
+                    )
+                )
             }
         }
 
@@ -54,35 +61,30 @@ class OpenPositionsParser(
         return Result.success(openPositions)
     }
 
-    private fun parseOpenPosition(row: Map<String, String>): OpenPosition {
+    private fun parseOpenPosition(row: Row): OpenPosition {
         return OpenPosition(
-            accountId = row[Headers.ACCOUNT_ID]!!,
-            currency = Currency.parse(currencyString = row[Headers.CURRENCY]!!),
-            symbol = row[Headers.SYMBOL]!!,
-            isin = row[Headers.ISIN]!!,
-            listingExchange = row[Headers.LISTING_EXCHANGE]!!,
-            quantity = HeaderParser.tryParseBigDecimal(
+            accountId = row.parseString(Headers.ACCOUNT_ID),
+            currency = Currency.parse(currencyString = row.parseString(Headers.CURRENCY)),
+            symbol = row.parseString(Headers.SYMBOL),
+            isin = row.parseString(header = Headers.ISIN, allowEmpty = true),
+            listingExchange = row.parseString(header = Headers.LISTING_EXCHANGE, allowEmpty = true),
+            quantity = row.parseBigDecimal(
                 header = Headers.QUANTITY,
-                row = row,
             ),
-            openPrice = HeaderParser.tryParseBigDecimal(
+            openPrice = row.parseBigDecimal(
                 header = Headers.OPEN_PRICE,
-                row = row,
             ),
-            costBasisPrice = HeaderParser.tryParseBigDecimal(
+            costBasisPrice = row.parseBigDecimal(
                 header = Headers.COST_BASIS_PRICE,
-                row = row,
             ),
-            costBasisMoney = HeaderParser.tryParseBigDecimal(
+            costBasisMoney = row.parseBigDecimal(
                 header = Headers.COST_BASIS_MONEY,
-                row = row,
             ),
-            openDate = HeaderParser.tryParseLocalDateTime(
+            openDate = row.parseLocalDateTime(
                 header = Headers.OPEN_DATE_TIME,
-                row = row,
                 formatter = OPEN_DATE_FORMATTER,
             ),
-            transactionId = row[Headers.TRANSACTION_ID]!!,
+            transactionId = row.parseString(Headers.TRANSACTION_ID),
         )
     }
 

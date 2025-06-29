@@ -19,17 +19,23 @@ class TradesParser(
 
         val trades = mutableListOf<Trade>()
 
-        for (row in rows) {
-            if (isRowAHeader(row)) {
+        var rowIndex = 0
+        for (csvRow in rows) {
+            rowIndex++
+
+            if (isRowAHeader(csvRow)) {
                 println("Found a header row. Skipping!")
                 continue
             }
 
             val trade = try {
-                parseTrade(row)
+                parseTrade(row = Row(map = csvRow))
             } catch (ex: Exception) {
-                println("Failed to parse trade")
-                return Result.failure(ex)
+                return Result.failure(
+                    exception = IllegalArgumentException(
+                        "Неуспешна обработка на ред: $rowIndex. Причина: ${ex.message}"
+                    )
+                )
             }
 
             trades.add(trade)
@@ -38,33 +44,31 @@ class TradesParser(
         return Result.success(trades)
     }
 
-    private fun parseTrade(row: Map<String, String>): Trade {
+    private fun parseTrade(row: Row): Trade {
         return Trade(
-            accountId = row[Headers.ACCOUNT_ID]!!,
-            currency = Currency.parse(currencyString = row[Headers.CURRENCY]!!),
-            symbol = row[Headers.SYMBOL]!!,
-            isin = row[Headers.ISIN]!!,
-            listingExchange = row[Headers.LISTING_EXCHANGE]!!,
-            dateTime = HeaderParser.tryParseLocalDateTime(
+            accountId = row.parseString(Headers.ACCOUNT_ID),
+            currency = Currency.parse(
+                currencyString = row.parseString(Headers.CURRENCY),
+            ),
+            symbol = row.parseString(Headers.SYMBOL),
+            isin = row.parseString(header = Headers.ISIN, allowEmpty = true),
+            listingExchange = row.parseString(header = Headers.LISTING_EXCHANGE, allowEmpty = true),
+            dateTime = row.parseLocalDateTime(
                 header = Headers.DATE_TIME,
-                row = row,
                 formatter = DATE_TIME_FORMATTER,
             ),
-            buySell = TradeType.parse(tradeTypeString = row[Headers.BUY_SELL]!!),
-            quantity = HeaderParser.tryParseBigDecimal(
+            buySell = TradeType.parse(tradeTypeString = row.parseString(Headers.BUY_SELL)),
+            quantity = row.parseBigDecimal(
                 header = Headers.QUANTITY,
-                row = row,
             ),
-            tradePrice = HeaderParser.tryParseBigDecimal(
+            tradePrice = row.parseBigDecimal(
                 header = Headers.TRADE_PRICE,
-                row = row,
             ),
-            commission = HeaderParser.tryParseBigDecimal(
+            commission = row.parseBigDecimal(
                 header = Headers.COMMISSION,
-                row = row
             ),
-            commissionCurrency = Currency.parse(currencyString = row[Headers.COMMISSION_CURRENCY]!!),
-            transactionId = row[Headers.TRANSACTION_ID]!!,
+            commissionCurrency = Currency.parse(currencyString = row.parseString(Headers.COMMISSION_CURRENCY)),
+            transactionId = row.parseString(Headers.TRANSACTION_ID),
         )
     }
 

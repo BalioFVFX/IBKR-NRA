@@ -1,7 +1,10 @@
 package converter
 
 import converter.result.ConverterResult
+import converter.result.Issue
 import converter.result.NapOpenPosition
+import converter.result.addError
+import converter.result.addWarning
 import currency.LevExchanger
 import parser.output.OpenPosition
 import parser.output.Trade
@@ -28,7 +31,7 @@ class NapOpenPositionConverter(
 
         percentageCalculator.reset(maximum = openPositions.size)
 
-        val errors = mutableListOf<String>()
+        val issues = mutableListOf<Issue>()
         val result = mutableListOf<NapOpenPosition>()
 
         for (openPosition in openPositions) {
@@ -41,8 +44,8 @@ class NapOpenPositionConverter(
             println("Converting trade: $trade")
 
             if (trade == null) {
-                errors.add(
-                    "Не е намерена сделка за отворена позиция: ${openPosition.symbol} с идентификатор за" +
+                issues.addError(
+                    reason = "Не е намерена сделка за отворена позиция: ${openPosition.symbol} с идентификатор за" +
                             " транзакция: ${openPosition.transactionId}"
                 )
 
@@ -52,11 +55,17 @@ class NapOpenPositionConverter(
             }
 
             if (trade.symbol != openPosition.symbol) {
-                errors.add("Не съвпадащ ticker за сделка и отворена позиция с идентификатор на транзакция: ${openPosition.transactionId}")
+                issues.addError(
+                    reason = "Не съвпадащ ticker за сделка и отворена позиция с идентификатор на транзакция: " +
+                            openPosition.transactionId
+                )
             }
 
             if (trade.isin != openPosition.isin) {
-                errors.add("Не съвпадащ ISIN за сделка и отворена позиция с идентификатор на транзакция: ${openPosition.transactionId}")
+                issues.addError(
+                    reason = "Не съвпадащ ISIN за сделка и отворена позиция с идентификатор на транзакция: " +
+                            openPosition.transactionId
+                )
             }
 
 
@@ -64,7 +73,10 @@ class NapOpenPositionConverter(
                 val result = getCountry(ticker = openPosition.symbol)
 
                 if (result == null) {
-                    errors.add("Не е намерена държава за ${openPosition.symbol} с идентификатор на транзакция: ${openPosition.transactionId}")
+                    issues.addError(
+                        reason = "Не е намерена държава за ${openPosition.symbol} с идентификатор на транзакция: " +
+                                openPosition.transactionId
+                    )
                     "Грешка"
                 } else {
                     result
@@ -78,8 +90,8 @@ class NapOpenPositionConverter(
                 if (openPosition.openDate != trade.dateTime) {
                     val tradeFormattedDate = trade.dateTime.format(OPEN_DATE_FORMATTER)
 
-                    errors.add(
-                        "Не съвпадаща дата на отворена позиция и сделка. " +
+                    issues.addError(
+                        reason = "Не съвпадаща дата на отворена позиция и сделка. " +
                                 "Символ: ${openPosition.symbol} с идентификатор на транзакция ${openPosition.transactionId}, " +
                                 "дата на отворена позиция: $formattedDate," +
                                 "дата на сделка: $tradeFormattedDate"
@@ -97,14 +109,16 @@ class NapOpenPositionConverter(
 
             val levPrice = run {
                 if (levResult.isFailure) {
-                    return@run "Не е намерен курс за лев за дата. ID на транзакция: ${openPosition.transactionId}"
+                    val reason = "Не е намерен курс за лев за дата. ID на транзакция: ${openPosition.transactionId}"
+                    issues.addError(reason = reason)
+                    return@run reason
                 }
 
                 val actualLevDate = levResult.getOrThrow().first
 
                 if (actualLevDate != openPosition.openDate.toLocalDate()) {
-                    errors.add(
-                        "Не е намерен курс на лев за дата: ${openPosition.openDate.format(OPEN_DATE_FORMATTER)}." +
+                    issues.addWarning(
+                        reason = "Не е намерен курс на лев за дата: ${openPosition.openDate.format(OPEN_DATE_FORMATTER)}." +
                                 "Използван курс от дата: ${actualLevDate.format(OPEN_DATE_FORMATTER)}"
                     )
                 }
@@ -131,7 +145,7 @@ class NapOpenPositionConverter(
 
         return ConverterResult(
             data = result,
-            errors = errors,
+            issues = issues,
         )
     }
 

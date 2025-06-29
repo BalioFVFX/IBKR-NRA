@@ -1,7 +1,8 @@
 package screen.dividends
 
 import converter.NapDividendConverter
-import export.ConverterErrorExporter
+import converter.result.Issue
+import export.ConverterIssueExporter
 import export.DividendsExporter
 import export.NapDividendExporter
 import kotlinx.coroutines.CoroutineScope
@@ -12,7 +13,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import nav.Navigation
 import parser.DividendsParser
+import screen.dialog.ConversionCompleteDialogUi
+import screen.dialog.ErrorDialogUi
 import screen.util.FileItem
+import util.DirectoryOpener
+import util.ExportDirectory
 import util.FileProvider
 import util.combineProgress
 import java.io.File
@@ -23,9 +28,10 @@ class DividendsViewModel(
     private val dividendsParser: DividendsParser,
     private val dividendsExporter: DividendsExporter,
     private val fileProvider: FileProvider,
-    private val errorExporter: ConverterErrorExporter,
+    private val errorExporter: ConverterIssueExporter,
     private val napDividendExporter: NapDividendExporter,
     private val napDividendConverter: NapDividendConverter,
+    private val directoryOpener: DirectoryOpener,
 ) {
     private val _uiState = MutableStateFlow(
         DividendsUi(
@@ -34,11 +40,15 @@ class DividendsViewModel(
             canImport = true,
             canConvert = false,
             progress = null,
+            conversionCompleteDialogUi = null,
+            errorDialogUi = null,
         )
     )
 
     val uiState = _uiState.asStateFlow()
+
     private var internalDividendsFile: File? = null
+    @Volatile private var lastExportDir: ExportDirectory? = null
 
     fun onImport(file: File) {
         if (!uiState.value.canImport) {
@@ -109,13 +119,18 @@ class DividendsViewModel(
 
             if (dividendsResult.isFailure) {
                 dividendsResult.exceptionOrNull()?.printStackTrace()
-                _uiState.update { previousState }
+                _uiState.update {
+                    previousState.copy(
+                        errorDialogUi = ErrorDialogUi(message = dividendsResult.exceptionOrNull()?.message ?: "")
+                    )
+                }
                 return@launch
             }
 
             val dividends = dividendsResult.getOrNull()!!
 
             val exportDir = fileProvider.provideExportDirectory()
+            lastExportDir = exportDir
 
             val debugExportResult = dividendsExporter.export(
                 dividends = dividends,
@@ -127,20 +142,24 @@ class DividendsViewModel(
             )
 
             if (debugExportResult.isFailure) {
-                _uiState.update { previousState }
                 debugExportResult.exceptionOrNull()?.printStackTrace()
+                _uiState.update {
+                    previousState.copy(
+                        errorDialogUi = ErrorDialogUi(message = "Неуспешно записване на debug/dividends.xls файл")
+                    )
+                }
                 return@launch
             }
 
             val napConverterResult = napDividendConverter.convert(dividends = dividends)
 
-            if (napConverterResult.errors.isNotEmpty()) {
+            if (napConverterResult.issues.isNotEmpty()) {
                 errorExporter.export(
                     destination = fileProvider.provide(
                         parentFilePath = exportDir.export,
                         childPath = "errors.txt",
                     ),
-                    errors = napConverterResult.errors,
+                    issues = napConverterResult.issues,
                 )
             }
 
@@ -152,11 +171,24 @@ class DividendsViewModel(
                 )
             )
 
-            if (exportResult.isFailure) {
-                println("Could not export Nap Dividends")
+            if (!exportResult.isSuccess)  {
+                _uiState.update {
+                    previousState.copy(
+                        errorDialogUi = ErrorDialogUi(message = "Неуспешно записване на result.xls файл")
+                    )
+                }
+
+                return@launch
             }
 
-            _uiState.update { previousState }
+            _uiState.update {
+                previousState.copy(
+                    conversionCompleteDialogUi = ConversionCompleteDialogUi(
+                        notices = napConverterResult.issues.count { it is Issue.Warning },
+                        errors = napConverterResult.issues.count { it is Issue.Error },
+                    )
+                )
+            }
         }.invokeOnCompletion {
             progressJob.cancel()
         }
@@ -168,5 +200,29 @@ class DividendsViewModel(
         }
 
         navigation.onBack()
+    }
+
+    fun onCloseErrorDialog() {
+        _uiState.update {
+            it.copy(
+                errorDialogUi = null,
+            )
+        }
+    }
+
+    fun onCloseConversionDialog(openResultsDirectory: Boolean) {
+        _uiState.update {
+            it.copy(
+                conversionCompleteDialogUi = null,
+            )
+        }
+
+        if (!openResultsDirectory) {
+            return
+        }
+
+        lastExportDir?.let {
+            directoryOpener.openDirectory(path = it.export.absolutePath)
+        }
     }
 }

@@ -25,22 +25,29 @@ class DividendsParser(
         val fileRows = mutableListOf<FileRow>()
         percentageCalculator.reset(maximum = rows.size)
 
-        for (row in rows) {
+        var rowIndex = 0
+        for (csvRow in rows) {
+            rowIndex += 1
+
             percentageCalculator.increment()
 
-            if (row.size != 10) {
+            if (csvRow.size != 10) {
                 return Result.failure(IllegalArgumentException("Невалиден брой колони"))
             }
 
-            if (isRowAHeader(row)) {
+            if (isRowAHeader(csvRow)) {
                 println("Header row, skipping!")
                 continue
             }
 
             try {
-                fileRows.add(parseFileRow(row))
+                fileRows.add(parseFileRow(row = Row(map = csvRow)))
             } catch (ex: Exception) {
-                return Result.failure(ex)
+                return Result.failure(
+                    IllegalArgumentException(
+                        "Неуспешно обработване на ред: $rowIndex. Причина: ${ex.message}"
+                    )
+                )
             }
         }
 
@@ -72,25 +79,21 @@ class DividendsParser(
         }
     }
 
-    private fun parseFileRow(row: Map<String, String>): FileRow {
+    private fun parseFileRow(row: Row): FileRow {
         return FileRow(
-            clientAccountId = row[Headers.CLIENT_ACCOUNT_ID]!!,
-            currency = Currency.parse(row[Headers.CURRENCY_PRIMARY]!!),
-            symbol = row[Headers.SYMBOL]!!,
-            description = row[Headers.DESCRIPTION]!!,
-            isin = row[Headers.ISIN]!!,
-            issuerCountryCode = row[Headers.ISSUER_COUNTRY_CODE]!!,
-            dateTime = HeaderParser.tryParseLocalDateTime(
+            clientAccountId = row.parseString(Headers.CLIENT_ACCOUNT_ID),
+            currency = Currency.parse(currencyString = row.parseString(Headers.CURRENCY_PRIMARY)),
+            symbol = row.parseString(Headers.SYMBOL),
+            description = row.parseString(Headers.DESCRIPTION),
+            isin = row.parseString(Headers.ISIN),
+            issuerCountryCode = row.parseString(Headers.ISSUER_COUNTRY_CODE),
+            dateTime = row.parseLocalDateTime(
                 header = Headers.DATE_TIME,
-                row = row,
                 formatter = DATE_TIME_FORMATTER,
             ),
-            amount = HeaderParser.tryParseBigDecimal(
-                header = Headers.AMOUNT,
-                row = row,
-            ),
-            type = Type.parse(row[Headers.TYPE]!!),
-            actionId = row[Headers.ACTION_ID]!!,
+            amount = row.parseBigDecimal(header = Headers.AMOUNT),
+            type = Type.parse(row.parseString(Headers.TYPE)),
+            actionId = row.parseString(Headers.ACTION_ID),
         )
     }
 
@@ -143,9 +146,11 @@ class DividendsParser(
                     TAX.fileValue -> {
                         TAX
                     }
+
                     DIVIDEND.fileValue -> {
                         DIVIDEND
                     }
+
                     else -> {
                         throw IllegalArgumentException("Unknown type: $value")
                     }
