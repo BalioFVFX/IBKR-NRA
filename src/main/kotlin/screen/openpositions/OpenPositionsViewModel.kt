@@ -1,6 +1,8 @@
 package screen.openpositions
 
 import converter.NapOpenPositionConverter
+import converter.result.Issue
+import export.ConverterIssueExporter
 import export.NapOpenPositionsExporter
 import export.OpenPositionsExporter
 import export.TradesExporter
@@ -15,8 +17,12 @@ import parser.output.OpenPosition
 import parser.OpenPositionsParser
 import parser.output.Trade
 import parser.TradesParser
+import screen.dialog.ConversionCompleteDialogUi
+import screen.dialog.ErrorDialogUi
 import screen.util.FileItem
 import util.DateTimeProvider
+import util.DirectoryOpener
+import util.ExportDirectory
 import util.FileProvider
 import util.combineProgress
 import java.io.File
@@ -29,20 +35,18 @@ class OpenPositionsViewModel(
     private val tradesExporter: TradesExporter,
     private val openPositionsExporter: OpenPositionsExporter,
     private val napOpenPositionsExporter: NapOpenPositionsExporter,
-    private val dateTimeProvider: DateTimeProvider,
+    private val converterIssueExporter: ConverterIssueExporter,
     private val napOpenPositionConverter: NapOpenPositionConverter,
     private val fileProvider: FileProvider,
     private val navigation: Navigation,
+    private val directoryOpener: DirectoryOpener,
 ) {
-
-    companion object {
-        private val EXPORT_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd.MM.YYYY_HH.mm.ss")
-    }
 
     private var idGenerator = 0L
 
     private val internalTrades =  mutableListOf<Pair<FileItem, List<Trade>>>()
     private var internalOpenPositions: Pair<FileItem, List<OpenPosition>>? = null
+    private var lastExportDir: ExportDirectory? = null
 
     private val _uiState = MutableStateFlow(
         OpenPositionsUi(
@@ -52,6 +56,8 @@ class OpenPositionsViewModel(
             canConvert = false,
             canRemove = true,
             progress = null,
+            conversionCompleteDialogUi = null,
+            errorDialogUi = null,
         )
     )
 
@@ -73,6 +79,7 @@ class OpenPositionsViewModel(
                 _uiState.update { data ->
                     data.copy(
                         canImport = true,
+                        errorDialogUi = ErrorDialogUi(message = result.exceptionOrNull()?.message ?: "")
                     )
                 }
 
@@ -102,12 +109,12 @@ class OpenPositionsViewModel(
             if (result.isFailure) {
                 _uiState.value = _uiState.value.copy(
                     canImport = true,
+                    errorDialogUi = ErrorDialogUi(message = result.exceptionOrNull()?.message ?: "")
                 )
 
                 result.exceptionOrNull()!!.printStackTrace()
                 return@launch
             }
-
 
             internalOpenPositions = FileItem(id = idGenerator++, fileName = file.name) to result.getOrThrow()
 
@@ -148,30 +155,43 @@ class OpenPositionsViewModel(
             }
         }
 
+        val exportDir = fileProvider.provideExportDirectory()
+        lastExportDir = exportDir
+
         scope.launch(Dispatchers.IO) {
-            val basePath = "exports/${dateTimeProvider.currentDateTime().format(EXPORT_DATE_TIME_FORMATTER)}"
-
-            fileProvider.provide("${basePath}/debug/").mkdirs()
-
             val tradesExportResult = tradesExporter.export(
                 trades = internalTrades.flatMap { it.second },
                 sheetName = "Всички сделки",
-                destination = File("${basePath}/debug/trades.xls"),
+                destination = fileProvider.provide(
+                    parentFilePath = exportDir.debug,
+                    childPath = "/trades.xls"
+                ),
             )
 
             if (!tradesExportResult.isSuccess) {
-                _uiState.update { previousState}
+                _uiState.update {
+                    previousState.copy(
+                        errorDialogUi = ErrorDialogUi(message = "Неуспешно записване на debug/trades.xls файл")
+                    )
+                }
                 return@launch
             }
 
             val openPositionsExportResult = openPositionsExporter.export(
                 openPositions = internalOpenPositions!!.second,
                 sheetName = "Отворени позиции",
-                destination = File("${basePath}/debug/open_positions.xls")
+                destination = fileProvider.provide(
+                    parentFilePath = exportDir.debug,
+                    childPath = "/open_positions.xls"
+                ),
             )
 
             if (!openPositionsExportResult.isSuccess) {
-                _uiState.update { previousState }
+                _uiState.update {
+                    previousState.copy(
+                        errorDialogUi = ErrorDialogUi(message = "Неуспешно записване на debug/open_positions.xls файл")
+                    )
+                }
                 return@launch
             }
 
@@ -181,17 +201,41 @@ class OpenPositionsViewModel(
             )
 
             if (convertResult.issues.isNotEmpty()) {
-                fileProvider.provide("${basePath}/errors.txt").writeText(
-                    convertResult.issues.joinToString(separator = "\n")
+                converterIssueExporter.export(
+                    destination = fileProvider.provide(
+                        parentFilePath = exportDir.export,
+                        childPath = "errors.txt",
+                    ),
+                    issues = convertResult.issues,
                 )
             }
 
-            napOpenPositionsExporter.export(
+            val exportResult = napOpenPositionsExporter.export(
                 openPositions = convertResult.data,
-                destination = fileProvider.provide("${basePath}/result.xls"),
+                destination = fileProvider.provide(
+                    parentFilePath = exportDir.export,
+                    childPath = "result.xls",
+                ),
             )
 
-            _uiState.update { previousState }
+            if (!exportResult.isSuccess)  {
+                _uiState.update {
+                    previousState.copy(
+                        errorDialogUi = ErrorDialogUi(message = "Неуспешно записване на result.xls файл")
+                    )
+                }
+
+                return@launch
+            }
+
+            _uiState.update {
+                previousState.copy(
+                    conversionCompleteDialogUi = ConversionCompleteDialogUi(
+                        notices = convertResult.issues.count { it is Issue.Warning },
+                        errors = convertResult.issues.count { it is Issue.Error },
+                    )
+                )
+            }
         }.invokeOnCompletion {
             progressJob.cancel()
         }
@@ -228,6 +272,31 @@ class OpenPositionsViewModel(
 
         navigation.onBack()
     }
+
+    fun onCloseErrorDialog() {
+        _uiState.update {
+            it.copy(
+                errorDialogUi = null,
+            )
+        }
+    }
+
+    fun onCloseConversionDialog(openResultsDirectory: Boolean) {
+        _uiState.update {
+            it.copy(
+                conversionCompleteDialogUi = null,
+            )
+        }
+
+        if (!openResultsDirectory) {
+            return
+        }
+
+        lastExportDir?.let {
+            directoryOpener.openDirectory(path = it.export.absolutePath)
+        }
+    }
+    
 
     private fun computeCanConvert(isConverting: Boolean) : Boolean {
         return !isConverting && internalOpenPositions != null && internalTrades.isNotEmpty()

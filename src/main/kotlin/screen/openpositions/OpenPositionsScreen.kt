@@ -1,5 +1,6 @@
 package screen.openpositions
 
+import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
 import converter.NapOpenPositionConverter
 import currency.LevCacheManager
 import currency.LevExchanger
+import export.ConverterIssueExporter
 import export.NapOpenPositionsExporter
 import export.OpenPositionsExporter
 import export.TradesExporter
@@ -44,9 +46,13 @@ import parser.OpenPositionsParser
 import parser.TradesParser
 import screen.component.FileCell
 import screen.component.ProgressIndicator
+import screen.dialog.ConversionCompleteDialogUi
+import screen.dialog.ConversionCompletedDialog
+import screen.dialog.ErrorDialog
 import screen.util.FileItem
 import util.CountryExtractor
 import util.DateTimeProvider
+import util.DirectoryOpener
 import util.FileProvider
 import util.PercentageCalculator
 import util.WorkBookProvider
@@ -74,6 +80,8 @@ fun OpenPositionsScreen(
         onOpenPositionRemove = viewModel::onRemoveOpenPositions,
         onConvert = viewModel::onConvert,
         onBack = viewModel::onBack,
+        onCloseErrorDialog = viewModel::onCloseErrorDialog,
+        onCloseConversationCompleteDialog = viewModel::onCloseConversionDialog,
     )
 }
 
@@ -86,6 +94,8 @@ fun OpenPositionsScreenContent(
     onTradeRemove: (FileItem) -> Unit,
     onOpenPositionRemove: () -> Unit,
     onBack: () -> Unit,
+    onCloseErrorDialog: () -> Unit,
+    onCloseConversationCompleteDialog: (Boolean) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     Column(
@@ -211,6 +221,65 @@ fun OpenPositionsScreenContent(
             ProgressIndicator(percent = uiState.progress)
         }
     }
+
+    if (uiState.errorDialogUi != null) {
+        ErrorDialog(
+            ui = uiState.errorDialogUi,
+            onCloseClick = onCloseErrorDialog,
+        )
+    }
+
+    if (uiState.conversionCompleteDialogUi != null) {
+        ConversionCompletedDialog(
+            ui = uiState.conversionCompleteDialogUi,
+            onDismissAction = {
+                onCloseConversationCompleteDialog.invoke(false)
+            },
+            onShowResultAction = {
+                onCloseConversationCompleteDialog.invoke(true)
+            }
+        )
+    }
+}
+
+@Composable
+@Preview
+fun OpenPositionsScreenPreview() {
+    OpenPositionsScreenContent(
+        uiState = OpenPositionsUi(
+            trades = listOf(
+                FileItem(
+                    id = 1,
+                    fileName = "trades1.csv",
+                ),
+                FileItem(
+                    id = 2,
+                    fileName = "trades2.csv",
+                )
+            ),
+            openPositions = FileItem(
+                id = 3,
+                fileName = "open-positions.csv",
+            ),
+            canImport = true,
+            canConvert = true,
+            canRemove = true,
+            progress = null,
+            conversionCompleteDialogUi = ConversionCompleteDialogUi(
+                notices = 3,
+                errors = 5,
+            ),
+            errorDialogUi = null,
+        ),
+        onTradesImport = {},
+        onOpenPositionsImport = {},
+        onConvert = {},
+        onTradeRemove = {},
+        onOpenPositionRemove = {},
+        onBack = {},
+        onCloseErrorDialog = {},
+        onCloseConversationCompleteDialog = {},
+    )
 }
 
 @Composable
@@ -246,7 +315,6 @@ private fun rememberViewModel(
                 workBookProvider = workBookProvider,
                 percentageCalculator = PercentageCalculator(),
             ),
-            dateTimeProvider = dateTimeProvider,
             fileProvider = fileProvider,
             napOpenPositionConverter = NapOpenPositionConverter(
                 levExchanger = LevExchanger(
@@ -264,6 +332,8 @@ private fun rememberViewModel(
                 percentageCalculator = PercentageCalculator(),
             ),
             navigation = navigation,
+            converterIssueExporter = ConverterIssueExporter(),
+            directoryOpener = DirectoryOpener(),
         )
     }
 }

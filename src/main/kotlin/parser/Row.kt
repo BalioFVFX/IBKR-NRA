@@ -12,7 +12,13 @@ class Row(
      * @return [String] value for the given [header]
      * @throws IllegalArgumentException If this Row does not contain [header]
      */
-    fun parseString(header: String): String = extract(header) { it }
+    fun parseString(header: String, allowEmpty: Boolean = false): String = extract(header) {
+        if (!allowEmpty && it.isBlank()) {
+            throw IllegalArgumentException("Липсваща стойност")
+        }
+
+        it
+    }
 
     /**
      * @return [BigDecimal] value for the given [header]

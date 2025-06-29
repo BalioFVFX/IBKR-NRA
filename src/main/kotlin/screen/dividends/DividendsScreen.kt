@@ -41,10 +41,13 @@ import org.jetbrains.compose.resources.painterResource
 import parser.DividendsParser
 import screen.component.FileCell
 import screen.component.ProgressIndicator
+import screen.dialog.ConversionCompletedDialog
+import screen.dialog.ErrorDialog
 import screen.util.FileItem
 import util.CompanyNameExtractor
 import util.CountryExtractor
 import util.DateTimeProvider
+import util.DirectoryOpener
 import util.FileProvider
 import util.PercentageCalculator
 import util.WorkBookProvider
@@ -68,6 +71,8 @@ fun DividendsScreen(navigation: Navigation) {
         onDividendFileRemove = viewModel::onDividendFileRemove,
         onConvert = viewModel::onConvert,
         onImport = viewModel::onImport,
+        onCloseErrorDialog = viewModel::onCloseErrorDialog,
+        onCloseConversationCompleteDialog = viewModel::onCloseConversionDialog,
     )
 
 
@@ -80,6 +85,8 @@ fun DividendsScreenContent(
     onDividendFileRemove: () -> Unit,
     onConvert: () -> Unit,
     onImport: (File) -> Unit,
+    onCloseErrorDialog: () -> Unit,
+    onCloseConversationCompleteDialog: (Boolean) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
 
@@ -156,6 +163,25 @@ fun DividendsScreenContent(
             ProgressIndicator(percent = dividendsUi.progress)
         }
     }
+
+    if (dividendsUi.errorDialogUi != null) {
+        ErrorDialog(
+            ui = dividendsUi.errorDialogUi,
+            onCloseClick = onCloseErrorDialog,
+        )
+    }
+
+    if (dividendsUi.conversionCompleteDialogUi != null) {
+        ConversionCompletedDialog(
+            ui = dividendsUi.conversionCompleteDialogUi,
+            onDismissAction = {
+                onCloseConversationCompleteDialog.invoke(false)
+            },
+            onShowResultAction = {
+                onCloseConversationCompleteDialog.invoke(true)
+            }
+        )
+    }
 }
 
 @Preview
@@ -171,11 +197,15 @@ private fun DividendsScreenPreview() {
             canImport = true,
             canConvert = true,
             progress = null,
+            conversionCompleteDialogUi = null,
+            errorDialogUi = null,
         ),
         onBack = {},
         onDividendFileRemove = {},
         onConvert = {},
         onImport = {},
+        onCloseErrorDialog = {},
+        onCloseConversationCompleteDialog = {},
     )
 }
 
@@ -232,6 +262,7 @@ private fun rememberViewModel(
                 countryExtractor = countryExtractor,
                 percentageCalculator = PercentageCalculator(),
             ),
+            directoryOpener = DirectoryOpener(),
         )
     }
 }

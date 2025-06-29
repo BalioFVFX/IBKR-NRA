@@ -21,17 +21,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
-
-data class ConversionCompleteDialogUi(
-    val notices: Int,
-    val errors: Int,
-)
+data class ErrorDialogUi(val message: String)
 
 @Composable
-fun ConversionCompletedDialog(
-    ui: ConversionCompleteDialogUi,
-    onDismissAction: () -> Unit,
-    onShowResultAction: () -> Unit,
+fun ErrorDialog(
+    ui: ErrorDialogUi,
+    onCloseClick: () -> Unit,
 ) {
     Dialog(
         onDismissRequest = {
@@ -50,7 +45,7 @@ fun ConversionCompletedDialog(
             ) {
                 Text(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    text = "Конвентирането завърши",
+                    text = "Грешка",
                     fontWeight = FontWeight.Medium,
                     fontSize = 16.sp
                 )
@@ -59,12 +54,7 @@ fun ConversionCompletedDialog(
 
                 Text(
                     modifier = Modifier.align(Alignment.CenterHorizontally),
-                    text = "Забележки: ${ui.notices}",
-                )
-
-                Text(
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    text = "Грешки: ${ui.errors}",
+                    text = ui.message,
                 )
 
                 Spacer(modifier = Modifier.size(8.dp))
@@ -72,25 +62,9 @@ fun ConversionCompletedDialog(
                 Button(
                     modifier = Modifier
                         .fillMaxWidth(),
-                    onClick = onDismissAction,
+                    onClick = onCloseClick,
                     content = {
-                        Text(
-                            text = "Затвори",
-                            color = Color.Black,
-                        )
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = Color.White,
-                    ),
-                    border = BorderStroke(1.dp, Color.Black)
-                )
-
-                Button(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    onClick = onShowResultAction,
-                    content = {
-                        Text("Покажи резултат")
+                        Text("Затвори")
                     },
                 )
             }
@@ -100,13 +74,11 @@ fun ConversionCompletedDialog(
 
 @Preview
 @Composable
-private fun ConversionCompletedDialogPreview() {
-    ConversionCompletedDialog(
-        ui = ConversionCompleteDialogUi(
-            notices = 3,
-            errors = 2,
+fun ErrorDialogPreview() {
+    ErrorDialog(
+        ui = ErrorDialogUi(
+            message = "Фатална грешка!",
         ),
-        onDismissAction = {},
-        onShowResultAction = { },
+        onCloseClick = {},
     )
 }
