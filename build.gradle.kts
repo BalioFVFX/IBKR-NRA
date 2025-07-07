@@ -35,6 +35,9 @@ dependencies {
     // XLS
     implementation("org.apache.poi:poi:5.4.1")
     implementation("org.apache.poi:poi-ooxml:5.4.1")
+
+    // Access app dir in various operating systems
+    implementation("ca.gosyer:kotlin-multiplatform-appdirs:2.0.0")
 }
 
 compose.desktop {

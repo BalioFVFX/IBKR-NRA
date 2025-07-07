@@ -21,7 +21,7 @@ class CompanyNameExtractor(
         }
 
         csvReader.readAll(
-            file = fileProvider.provide(path = "company_names.csv"),
+            ips = fileProvider.provideResource(resourceName = "company_names.csv"),
         ).associateTo(
             destination = cache,
             transform = { column ->

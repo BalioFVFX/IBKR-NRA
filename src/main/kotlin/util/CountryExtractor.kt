@@ -18,7 +18,7 @@ class CountryExtractor(
         }
 
         csvReader.readAll(
-            file = fileProvider.provide("ticker_countries.csv"),
+            ips = fileProvider.provideResource(resourceName = "ticker_countries.csv"),
         )
             .associateTo(
             destination = cache,
