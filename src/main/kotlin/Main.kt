@@ -10,6 +10,7 @@ import nav.Screen
 import screen.dividends.DividendsScreen
 import screen.main.MainScreen
 import screen.openpositions.OpenPositionsScreen
+import util.FileProvider
 
 @Composable
 @Preview
@@ -33,6 +34,8 @@ fun App(
 }
 
 fun main() = application {
+    FileProvider.createUserDataDir()
+
     Window(
         onCloseRequest = ::exitApplication,
         title = "IBKR-NRA",

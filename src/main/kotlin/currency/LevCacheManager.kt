@@ -22,8 +22,20 @@ class LevCacheManager(
     }
 
     private val cacheFile by lazy {
-        fileProvider.provide("cache").mkdirs()
-        val file = fileProvider.provide("cache/usd-bgn.csv").apply { createNewFile() }
+        val cache = fileProvider.provide(
+            parentFilePath = fileProvider.provideUserDataDir(),
+            childPath = "cache"
+        ).apply {
+            mkdirs()
+        }
+
+        val file = fileProvider.provide(
+            parentFilePath = cache,
+            childPath = "usd-bgn.csv"
+        ).apply {
+            createNewFile()
+        }
+
         file
     }
 
