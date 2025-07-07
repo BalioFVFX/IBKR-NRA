@@ -145,7 +145,8 @@ class DividendsViewModel(
                 debugExportResult.exceptionOrNull()?.printStackTrace()
                 _uiState.update {
                     previousState.copy(
-                        errorDialogUi = ErrorDialogUi(message = "Неуспешно записване на debug/dividends.xls файл")
+                        errorDialogUi = ErrorDialogUi(
+                            message = "Неуспешно записване на debug/dividends.xls файл. Причина: ${debugExportResult.exceptionOrNull()!!.message}")
                     )
                 }
                 return@launch

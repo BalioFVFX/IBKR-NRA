@@ -65,7 +65,7 @@ class DividendsExporter(
         } catch (ex: Exception) {
             ex.printStackTrace()
 
-            return Result.failure(Exception("Could not export trades to ${destination.name}"))
+            return Result.failure(ex)
         }
     }
 }

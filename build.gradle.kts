@@ -45,6 +45,16 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "IBKR-NRA"
             packageVersion = "1.0.0"
+
+            modules(
+                "java.net.http",
+            )
+        }
+
+        buildTypes.release.proguard {
+            optimize.set(false)
+            obfuscate.set(false)
+            configurationFiles.from(project.file("compose-desktop.pro"))
         }
     }
 }
